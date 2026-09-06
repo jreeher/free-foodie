@@ -149,8 +149,13 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('recipe-images', 'recipe-images', true)
 ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY "Public read recipe images" ON storage.objects
-  FOR SELECT USING (bucket_id = 'recipe-images');
+-- No SELECT policy: the bucket is public, so direct downloads by URL
+-- (.../storage/v1/object/public/recipe-images/<path>) work regardless of RLS.
+-- A SELECT policy on storage.objects only grants the ability to LIST/browse the
+-- bucket's contents via the Storage API, which the app never needs (it always
+-- already knows the exact URL from recipes.image_url) and which would let any
+-- client enumerate every uploaded file path — including the <user_id> prefix
+-- of each one. Flagged by Supabase's own Security Advisor after initial setup.
 CREATE POLICY "Authenticated users can upload recipe images" ON storage.objects
   FOR INSERT TO authenticated WITH CHECK (bucket_id = 'recipe-images');
 CREATE POLICY "Users can update own recipe images" ON storage.objects
