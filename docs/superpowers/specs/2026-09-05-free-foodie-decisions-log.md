@@ -1,0 +1,24 @@
+# Free Foodie Kickoff — Decisions Log (for morning review)
+
+You asked me to keep going overnight and make the recommended call at each fork rather than waiting for you. This is the running list of judgment calls made without your live input, newest first. Full rationale for each is in `docs/superpowers/specs/2026-09-05-free-foodie-kickoff-design.md` (search for ⚠️) and, once implementation starts, in `docs/superpowers/plans/2026-09-05-free-foodie-kickoff.md`.
+
+Nothing here is irreversible — it's all in a git history you can inspect and revert commit-by-commit if any call was wrong.
+
+## Design-phase decisions
+
+1. **Added a `profiles` table + `handle_new_user` trigger** that the kickoff's schema omitted. Without it, the kept `authStore.ts`/`useAuth.ts` break on every login. Kept minimal (no household/preferences fields). Wrote the trigger with `SET search_path = ''` from the start — CLAUDE.md documents Simmer Down getting bitten by omitting this originally.
+2. **Added `recipe_import_log` / `recipe_import_cache` tables** — the kept `extract-recipe-url` function needs them for rate-limiting/caching; the kickoff's schema didn't include them.
+3. **Added the `recipe-images` storage bucket + policies via SQL migration** — needed by the kept `useUploadRecipeImage` hook; not in the kickoff's schema.
+4. **Deleted `app/(tabs)/grocery/`** — leftover Simmer Down screen not in the kickoff's explicit delete list, but has no place in the new 4-tab structure.
+5. **Dropped the old recipe-card photo-import feature** (`extract-recipe-image` edge function, `AddRecipeModal.tsx`, `recipes/import.tsx` + `import-review.tsx`) — you approved this explicitly before going to bed (distinct from the new pantry photo-scan feature, which is being built).
+6. **Rewriting `lib/hooks/useRecipes.ts` rather than lightly extending it** — the new `recipes` table schema doesn't have `household_id`/`categories`/`tags`/`is_favorite`/`rating`/`season_tags`/`meal_type`/`total_time_minutes`, so most of the existing filter logic doesn't carry over.
+7. **`canMakeNow` filter implemented client-side**, not as a Postgres view/RPC — simpler, fine at this app's scale, can move server-side later if needed.
+8. **Photo-scan reconciliation**: Claude's detected item names are fuzzy-matched (`ilike`) against the fixed catalog and shown as suggestion chips; unmatched names are dropped rather than used to invent new catalog rows (there's intentionally no catalog-editing UI yet).
+9. **App icon/splash assets left as Simmer Down artwork** — new visual branding treated as a separate design task, out of scope for this kickoff.
+10. **AsyncStorage query-cache key renamed** `simmerdown-query-cache-v1` → `freefoodie-query-cache-v1` so a device that ran both apps doesn't resurrect stale cached data.
+11. **New Supabase project and new EAS project are not created by me** — both require your interactive login/dashboard access. `.env` and `app.config.ts`'s `eas.projectId` are left with clearly marked placeholders.
+12. **No rate-limiting on the new `identify-food-items` endpoint** — kickoff didn't ask for one; adding a new log table for a single endpoint felt like scope creep. Flag if pantry-scan abuse becomes a concern.
+
+## Implementation-phase decisions
+
+_(appended here as they come up during the build)_
