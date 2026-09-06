@@ -1,137 +1,180 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
-import { Recipe, RecipeInsert, RecipeUpdate } from '../database.types';
-import { useUser, useProfile } from './useAuth';
+import { Recipe, RecipeInsert, RecipeUpdate, SkillLevel } from '../database.types';
+import { useUser } from './useAuth';
 import { useUIStore } from '../stores/uiStore';
-import { useAuthStore } from '../stores/authStore';
 import { imageUriToArrayBuffer } from '../utils/webCompat';
+
+export type RecipeWithMeta = Recipe & {
+  foodBankItemIds: string[];
+  avgRating: number | null;
+  ratingCount: number;
+  submitterName: string | null;
+};
 
 export type RecipeFilters = {
   search?: string;
-  categories?: string[];
-  tags?: string[];
-  minRating?: number;
-  maxCookTime?: number;
-  favoritesOnly?: boolean;
-  mealType?: string;
-  /** When set, only return recipes with these IDs (used for book filtering). Skips is_default=false filter. */
-  recipeIds?: string[];
+  skillLevel?: SkillLevel;
+  foodBankItemId?: string;
+  canMakeNow?: boolean;
+  /** Only the current session user's own recipes — used by the Profile tab. */
+  mine?: boolean;
 };
 
-export type RecipeSortBy = 'created_at' | 'rating' | 'title' | 'total_time_minutes';
-
 const RECIPES_KEY = 'recipes';
-const DEFAULT_RECIPES_KEY = 'default_recipes';
 
-export function useRecipes(filters?: RecipeFilters, sortBy: RecipeSortBy = 'created_at') {
+/** Always resolves to the same shape whether or not there are ids to look up —
+ *  keeps this out of the Promise.all tuple below so its type doesn't have to
+ *  unify with a real PostgrestResponse via a ternary. */
+async function fetchProfileNames(ids: string[]): Promise<{ user_id: string; display_name: string | null; email: string }[]> {
+  if (!ids.length) return [];
+  const { data, error } = await supabase.from('profiles').select('user_id, display_name, email').in('user_id', ids);
+  if (error) throw error;
+  return data;
+}
+
+/** Attaches tag ids, rating summary, and submitter display name to a list of raw recipe rows. */
+async function attachMeta(recipes: Recipe[]): Promise<RecipeWithMeta[]> {
+  if (recipes.length === 0) return [];
+  const ids = recipes.map((r) => r.id);
+  const userIds = Array.from(new Set(recipes.map((r) => r.user_id).filter(Boolean))) as string[];
+
+  const [tagsRes, ratingsRes, profileRows] = await Promise.all([
+    supabase.from('recipe_food_bank_items').select('recipe_id, food_bank_item_id').in('recipe_id', ids),
+    supabase.from('recipe_ratings').select('recipe_id, rating').in('recipe_id', ids),
+    fetchProfileNames(userIds),
+  ]);
+
+  if (tagsRes.error) throw tagsRes.error;
+  if (ratingsRes.error) throw ratingsRes.error;
+
+  const tagsByRecipe = new Map<string, string[]>();
+  for (const row of tagsRes.data ?? []) {
+    const list = tagsByRecipe.get(row.recipe_id) ?? [];
+    list.push(row.food_bank_item_id);
+    tagsByRecipe.set(row.recipe_id, list);
+  }
+
+  const ratingsByRecipe = new Map<string, number[]>();
+  for (const row of ratingsRes.data ?? []) {
+    const list = ratingsByRecipe.get(row.recipe_id) ?? [];
+    list.push(row.rating);
+    ratingsByRecipe.set(row.recipe_id, list);
+  }
+
+  const nameByUser = new Map<string, string>();
+  for (const row of profileRows) {
+    nameByUser.set(row.user_id, row.display_name || row.email.split('@')[0]);
+  }
+
+  return recipes.map((recipe) => {
+    const ratings = ratingsByRecipe.get(recipe.id) ?? [];
+    return {
+      ...recipe,
+      foodBankItemIds: tagsByRecipe.get(recipe.id) ?? [],
+      avgRating: ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null,
+      ratingCount: ratings.length,
+      submitterName: recipe.user_id ? nameByUser.get(recipe.user_id) ?? null : null,
+    };
+  });
+}
+
+export function useRecipes(filters?: RecipeFilters) {
   const user = useUser();
 
   return useQuery({
-    queryKey: [RECIPES_KEY, user?.id, filters, sortBy],
-    queryFn: async (): Promise<Recipe[]> => {
-      if (!user) return [];
-
-      // No explicit user_id filter — RLS handles access:
-      //   • "Users can view their own recipes"  (user_id = auth.uid())
-      //   • "Household members can view shared recipes" (household_id matches)
-      // Exclude built-in default/Surprise Me recipes from the main list.
-      let query = supabase.from('recipes').select('*');
-
-      if (filters?.recipeIds) {
-        // Book filter: show exactly these recipe IDs (may include defaults)
-        if (filters.recipeIds.length === 0) return [];
-        query = query.in('id', filters.recipeIds);
-      } else {
-        query = query.eq('is_default', false);
-      }
+    queryKey: [RECIPES_KEY, user?.id, filters],
+    queryFn: async (): Promise<RecipeWithMeta[]> => {
+      let query = supabase.from('recipes').select('*').order('created_at', { ascending: false });
 
       if (filters?.search) {
         query = query.ilike('title', `%${filters.search}%`);
       }
-      if (filters?.minRating) {
-        query = query.gte('rating', filters.minRating);
+      if (filters?.skillLevel) {
+        query = query.eq('skill_level', filters.skillLevel);
       }
-      if (filters?.maxCookTime) {
-        query = query.lte('cook_time_minutes', filters.maxCookTime);
+      if (filters?.mine) {
+        if (!user) return [];
+        query = query.eq('user_id', user.id);
       }
-      if (filters?.favoritesOnly) {
-        query = query.eq('is_favorite', true);
-      }
-
-      if (filters?.categories?.length) {
-        query = query.overlaps('categories', filters.categories);
-      }
-      if (filters?.tags?.length) {
-        query = query.overlaps('tags', filters.tags);
-      }
-      if (filters?.mealType) {
-        query = query.eq('meal_type', filters.mealType);
-      }
-
-      // Sort
-      const ascending = sortBy === 'title';
-      query = query.order(sortBy, { ascending, nullsFirst: false });
 
       const { data, error } = await query;
       if (error) throw error;
 
-      return data as Recipe[];
+      let withMeta = await attachMeta(data as Recipe[]);
+
+      if (filters?.foodBankItemId) {
+        withMeta = withMeta.filter((r) => r.foodBankItemIds.includes(filters.foodBankItemId!));
+      }
+
+      if (filters?.canMakeNow) {
+        if (!user) return [];
+        const { data: pantryRows, error: pantryError } = await supabase
+          .from('user_pantry')
+          .select('food_bank_item_id')
+          .eq('user_id', user.id);
+        if (pantryError) throw pantryError;
+        const pantryIds = new Set((pantryRows ?? []).map((p) => p.food_bank_item_id));
+        withMeta = withMeta.filter(
+          (r) => r.foodBankItemIds.length > 0 && r.foodBankItemIds.every((id) => pantryIds.has(id))
+        );
+      }
+
+      return withMeta;
     },
-    enabled: !!user,
+    enabled: !filters?.mine || !!user,
   });
 }
 
 export function useRecipe(id: string) {
-  const user = useUser();
-
   return useQuery({
     queryKey: [RECIPES_KEY, id],
-    queryFn: async (): Promise<Recipe> => {
-      const { data, error } = await supabase
-        .from('recipes')
-        .select('*')
-        .eq('id', id)
-        .single();
+    queryFn: async (): Promise<RecipeWithMeta> => {
+      const { data, error } = await supabase.from('recipes').select('*').eq('id', id).single();
       if (error) throw error;
-      return data as Recipe;
+      const [withMeta] = await attachMeta([data as Recipe]);
+      return withMeta;
     },
-    enabled: !!user && !!id,
+    enabled: !!id,
   });
 }
 
 export function useCreateRecipe() {
   const qc = useQueryClient();
   const user = useUser();
-  const profile = useProfile();
   const { showToast } = useUIStore();
 
   return useMutation({
-    mutationFn: async (recipe: Omit<RecipeInsert, 'user_id'>) => {
+    mutationFn: async ({
+      recipe,
+      foodBankItemIds,
+    }: {
+      recipe: Omit<RecipeInsert, 'user_id'>;
+      foodBankItemIds: string[];
+    }) => {
       if (!user) throw new Error('Not authenticated');
-      // Use .select() without .single() to avoid PostgREST "cannot coerce the
-      // result into a single JSON object" errors on accounts that are household
-      // members — two SELECT RLS policies (user_id AND household_id) can both
-      // match the newly inserted row, causing older PostgREST to return it twice.
+
       const { data, error } = await supabase
         .from('recipes')
-        .insert({
-          ...recipe,
-          user_id: user.id,
-          // Link to household so all members can see it
-          household_id: recipe.household_id ?? profile?.household_id ?? null,
-        })
-        .select();
+        .insert({ ...recipe, user_id: user.id })
+        .select()
+        .single();
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error('Recipe not saved');
-      return data[0] as Recipe;
+
+      if (foodBankItemIds.length) {
+        const { error: tagError } = await supabase
+          .from('recipe_food_bank_items')
+          .insert(foodBankItemIds.map((food_bank_item_id) => ({ recipe_id: data.id, food_bank_item_id })));
+        if (tagError) throw tagError;
+      }
+
+      return data as Recipe;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
       showToast('Recipe saved!', 'success');
     },
-    onError: (err: Error) => {
-      showToast(err.message, 'error');
-    },
+    onError: (err: Error) => showToast(err.message, 'error'),
   });
 }
 
@@ -140,17 +183,28 @@ export function useUpdateRecipe() {
   const { showToast } = useUIStore();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: RecipeUpdate }) => {
-      // Don't use .select() / RETURNING here. For household members the UPDATE
-      // policy is scoped to user_id = auth.uid(), but the two SELECT policies
-      // (user_id AND household_id) both match the same row — older PostgREST
-      // returns the row twice in the RETURNING result, causing errors. We skip
-      // RETURNING entirely and rely on invalidateQueries to refetch the updated data.
-      const { error } = await supabase
-        .from('recipes')
-        .update(updates)
-        .eq('id', id);
+    mutationFn: async ({
+      id,
+      recipe,
+      foodBankItemIds,
+    }: {
+      id: string;
+      recipe: RecipeUpdate;
+      foodBankItemIds: string[];
+    }) => {
+      const { error } = await supabase.from('recipes').update(recipe).eq('id', id);
       if (error) throw error;
+
+      const { error: delError } = await supabase.from('recipe_food_bank_items').delete().eq('recipe_id', id);
+      if (delError) throw delError;
+
+      if (foodBankItemIds.length) {
+        const { error: insError } = await supabase
+          .from('recipe_food_bank_items')
+          .insert(foodBankItemIds.map((food_bank_item_id) => ({ recipe_id: id, food_bank_item_id })));
+        if (insError) throw insError;
+      }
+
       return id;
     },
     onSuccess: (id) => {
@@ -158,9 +212,7 @@ export function useUpdateRecipe() {
       qc.invalidateQueries({ queryKey: [RECIPES_KEY, id] });
       showToast('Recipe updated', 'success');
     },
-    onError: (err: Error) => {
-      showToast(err.message, 'error');
-    },
+    onError: (err: Error) => showToast(err.message, 'error'),
   });
 }
 
@@ -170,21 +222,13 @@ export function useDeleteRecipe() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Fetch image URL before deleting so we can clean up storage
-      const { data: recipe } = await supabase
-        .from('recipes')
-        .select('image_url')
-        .eq('id', id)
-        .single();
+      const { data: recipe } = await supabase.from('recipes').select('image_url').eq('id', id).single();
 
-      // Delete from DB first
       const { error } = await supabase.from('recipes').delete().eq('id', id);
       if (error) throw error;
 
-      // Clean up the image from storage (best-effort — don't fail the delete if this errors)
       if (recipe?.image_url) {
         try {
-          // URL format: .../storage/v1/object/public/recipe-images/<path>
           const marker = '/recipe-images/';
           const idx = recipe.image_url.indexOf(marker);
           if (idx !== -1) {
@@ -200,318 +244,7 @@ export function useDeleteRecipe() {
       qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
       showToast('Recipe deleted', 'info');
     },
-    onError: (err: Error) => {
-      showToast(err.message, 'error');
-    },
-  });
-}
-
-export function useToggleFavorite() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
-      const { error } = await supabase
-        .from('recipes')
-        .update({ is_favorite: !isFavorite })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onMutate: async ({ id, isFavorite }) => {
-      // Optimistic update
-      await qc.cancelQueries({ queryKey: [RECIPES_KEY] });
-      qc.setQueryData([RECIPES_KEY, id], (old: Recipe | undefined) =>
-        old ? { ...old, is_favorite: !isFavorite } : old
-      );
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
-    },
-  });
-}
-
-export function useCategories() {
-  const user = useUser();
-
-  return useQuery({
-    queryKey: ['categories', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('sort_order');
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-}
-
-export function useCreateCategory() {
-  const qc = useQueryClient();
-  const user = useUser();
-  const { showToast } = useUIStore();
-
-  return useMutation({
-    mutationFn: async ({ name, icon }: { name: string; icon?: string }) => {
-      if (!user) throw new Error('Not authenticated');
-
-      // Read profile fresh from the store so we never use a stale closure value.
-      // (The household_id may have been set during the same event loop tick by
-      //  a preceding mutation, and the component may not have re-rendered yet.)
-      const profile = useAuthStore.getState().profile;
-
-      // Ensure the user has a household — categories require one for RLS.
-      // We use a SECURITY DEFINER RPC to avoid RLS auth.uid() race conditions.
-      let householdId = profile?.household_id ?? null;
-      if (!householdId) {
-        const displayName =
-          profile?.display_name ??
-          (profile?.email ? profile.email.split('@')[0] : 'My');
-
-        const { data: newHouseholdId, error: householdError } = await supabase
-          .rpc('create_household_for_user', {
-            household_name: `${displayName}'s Kitchen`,
-          });
-
-        if (householdError) throw householdError;
-        householdId = newHouseholdId as string;
-
-        // Update the local Zustand store — the RPC already updated Supabase.
-        const cur = useAuthStore.getState().profile;
-        if (cur) useAuthStore.getState().setProfile({ ...cur, household_id: householdId });
-      }
-
-      // Get current max sort_order scoped to this household only
-      const { data: existing } = await supabase
-        .from('categories')
-        .select('sort_order')
-        .eq('household_id', householdId)
-        .order('sort_order', { ascending: false })
-        .limit(1);
-      const nextOrder = existing && existing.length > 0 ? existing[0].sort_order + 1 : 0;
-
-      const { data, error } = await supabase
-        .from('categories')
-        .insert({
-          name: name.trim(),
-          icon: icon ?? null,
-          sort_order: nextOrder,
-          household_id: householdId,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
     onError: (err: Error) => showToast(err.message, 'error'),
-  });
-}
-
-export function useUpdateCategory() {
-  const qc = useQueryClient();
-  const { showToast } = useUIStore();
-
-  return useMutation({
-    mutationFn: async ({ id, name, icon }: { id: string; name: string; icon?: string | null }) => {
-      const { error } = await supabase
-        .from('categories')
-        .update({ name: name.trim(), icon: icon ?? null })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
-    onError: (err: Error) => showToast(err.message, 'error'),
-  });
-}
-
-export function useDeleteCategory() {
-  const qc = useQueryClient();
-  const { showToast } = useUIStore();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('categories').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['categories'] });
-      qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
-    },
-    onError: (err: Error) => showToast(err.message, 'error'),
-  });
-}
-
-export function useCreateTag() {
-  const qc = useQueryClient();
-  const profile = useProfile();
-  const { showToast } = useUIStore();
-
-  return useMutation({
-    mutationFn: async (name: string) => {
-      const { data, error } = await supabase
-        .from('tags')
-        .insert({
-          name: name.trim().toLowerCase(),
-          // Scope tag to the user's household so it isn't globally visible to everyone
-          household_id: profile?.household_id ?? null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tags'] }),
-    onError: (err: Error) => showToast(err.message, 'error'),
-  });
-}
-
-export function useDeleteTag() {
-  const qc = useQueryClient();
-  const { showToast } = useUIStore();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tags').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tags'] });
-      qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
-    },
-    onError: (err: Error) => showToast(err.message, 'error'),
-  });
-}
-
-export function useTags() {
-  const user = useUser();
-
-  return useQuery({
-    queryKey: ['tags', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-}
-
-/** Mark a recipe as cooked right now — updates last_cooked_at */
-export function useMarkRecipeCooked() {
-  const qc = useQueryClient();
-  const { showToast } = useUIStore();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('recipes')
-        .update({ last_cooked_at: new Date().toISOString() })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onMutate: async (id) => {
-      // Optimistic update
-      const now = new Date().toISOString();
-      qc.setQueryData([RECIPES_KEY, id], (old: Recipe | undefined) =>
-        old ? { ...old, last_cooked_at: now } : old
-      );
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
-      showToast('Marked as cooked! 🥘', 'success');
-    },
-    onError: (err: Error) => {
-      qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
-      showToast(err.message, 'error');
-    },
-  });
-}
-
-/** Fetch the built-in Surprise Me default recipes (is_default = true, user_id = null). */
-export function useDefaultRecipes() {
-  const user = useUser();
-
-  return useQuery({
-    queryKey: [DEFAULT_RECIPES_KEY],
-    queryFn: async (): Promise<Recipe[]> => {
-      const { data, error } = await supabase
-        .from('recipes')
-        .select('*')
-        .eq('is_default', true)
-        .order('title', { ascending: true });
-      if (error) throw error;
-      return data as Recipe[];
-    },
-    enabled: !!user,
-  });
-}
-
-/**
- * Copy a default recipe into the current user's collection.
- * Clears is_default, sets user_id to the current user, and links to their household.
- */
-export function useClaimDefaultRecipe() {
-  const qc = useQueryClient();
-  const user = useUser();
-  const { showToast } = useUIStore();
-
-  return useMutation({
-    mutationFn: async (defaultRecipeId: string) => {
-      if (!user) throw new Error('Not authenticated');
-
-      // Fetch the source default recipe
-      const { data: source, error: fetchError } = await supabase
-        .from('recipes')
-        .select('*')
-        .eq('id', defaultRecipeId)
-        .single();
-      if (fetchError) throw fetchError;
-
-      // Read profile fresh so we get the latest household_id
-      const profile = useAuthStore.getState().profile;
-
-      // Clone into the user's collection
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert({
-          user_id: user.id,
-          household_id: profile?.household_id ?? null,
-          is_default: false,
-          title: source.title,
-          description: source.description,
-          source_url: source.source_url,
-          image_url: source.image_url,
-          prep_time_minutes: source.prep_time_minutes,
-          cook_time_minutes: source.cook_time_minutes,
-          total_time_minutes: source.total_time_minutes,
-          servings: source.servings,
-          ingredients: source.ingredients,
-          instructions: source.instructions,
-          categories: source.categories,
-          tags: source.tags,
-          rating: null,
-          is_favorite: false,
-          season_tags: source.season_tags,
-          last_cooked_at: null,
-          meal_type: source.meal_type,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data as Recipe;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [RECIPES_KEY] });
-      showToast('Recipe added to your book! 🎉', 'success');
-    },
-    onError: (err: Error) => {
-      showToast(err.message, 'error');
-    },
   });
 }
 
@@ -528,17 +261,11 @@ export function useUploadRecipeImage() {
 
       const { data, error } = await supabase.storage
         .from('recipe-images')
-        .upload(filename, arrayBuffer, {
-          contentType,
-          upsert: true,
-        });
+        .upload(filename, arrayBuffer, { contentType, upsert: true });
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('recipe-images')
-        .getPublicUrl(data.path);
-
+      const { data: { publicUrl } } = supabase.storage.from('recipe-images').getPublicUrl(data.path);
       return publicUrl;
     },
   });
