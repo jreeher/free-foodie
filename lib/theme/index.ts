@@ -134,3 +134,11 @@ export function paletteIndexFromId(id: string): number {
   }
   return Math.abs(hash) % (BOOK_PALETTE.length - 1);
 }
+
+export const SKILL_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+
+export const SKILL_LEVEL_LABELS: Record<typeof SKILL_LEVELS[number], string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
