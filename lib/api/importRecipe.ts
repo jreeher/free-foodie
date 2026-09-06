@@ -2,8 +2,6 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { imageUriToBase64 } from '../utils/webCompat';
 import { supabase } from '../supabase';
 import { Ingredient } from '../database.types';
-import { guessAisleCategory } from '../utils/ingredients';
-import { AisleCategory } from '../theme';
 
 export interface ImportedRecipe {
   title: string;
@@ -23,7 +21,6 @@ function normalizeIngredients(raw: ImportedRecipe['ingredients']): Ingredient[] 
     name: ing.name,
     amount: ing.amount ?? '',
     unit: ing.unit ?? '',
-    aisle_category: guessAisleCategory(ing.name) as AisleCategory,
   }));
 }
 
