@@ -6,8 +6,8 @@ const isDev = variant === 'development';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: isDev ? 'Simmer Down (Dev)' : isPreview ? 'Simmer Down (Preview)' : 'Simmer Down',
-  slug: 'simmer-down',
+  name: isDev ? 'Free Foodie (Dev)' : isPreview ? 'Free Foodie (Preview)' : 'Free Foodie',
+  slug: 'free-foodie',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -23,10 +23,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: false,
-    bundleIdentifier: 'com.simmerdown.app',
+    bundleIdentifier: 'com.freefoodie.app',
     infoPlist: {
-      NSCameraUsageDescription: 'Simmer Down uses your camera to photograph recipes.',
-      NSPhotoLibraryUsageDescription: 'Simmer Down accesses your photos to import recipe images.',
+      NSCameraUsageDescription: 'Free Foodie uses your camera to scan food bank items and photograph recipes.',
+      NSPhotoLibraryUsageDescription: 'Free Foodie accesses your photos to import recipe images.',
     },
   },
   android: {
@@ -35,10 +35,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: '#FFFFFF',
     },
     package: isDev
-        ? 'com.simmerdown.app.dev'
+        ? 'com.freefoodie.app.dev'
         : isPreview
-        ? 'com.simmerdown.app.preview'
-        : 'com.simmerdown.app',
+        ? 'com.freefoodie.app.preview'
+        : 'com.freefoodie.app',
     permissions: ['CAMERA', 'READ_EXTERNAL_STORAGE'],
   },
   web: {
@@ -53,23 +53,23 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-camera',
       {
-        cameraPermission: 'Simmer Down uses your camera to photograph recipes.',
+        cameraPermission: 'Free Foodie uses your camera to scan food bank items and photograph recipes.',
       },
     ],
     [
       'expo-image-picker',
       {
-        photosPermission: 'Simmer Down accesses your photos to import recipe images.',
+        photosPermission: 'Free Foodie accesses your photos to import recipe images.',
       },
     ],
     [
       'expo-secure-store',
       {
-        faceIDPermission: 'Allow Simmer Down to use Face ID for secure sign-in.',
+        faceIDPermission: 'Allow Free Foodie to use Face ID for secure sign-in.',
       },
     ],
   ],
-  scheme: 'simmerdown',
+  scheme: 'freefoodie',
   experiments: {
     typedRoutes: true,
   },
@@ -77,7 +77,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     eas: {
-      projectId: '495e900a-4086-4e93-a4e2-adc0c29a52b1',
+      // TODO(user): replace with a real EAS project id — run `eas init` under your
+      // Expo account. The Simmer Down id below is intentionally left as a placeholder
+      // marker, NOT reused, since builds under it would go to the wrong EAS project.
+      projectId: 'REPLACE_WITH_NEW_EAS_PROJECT_ID',
     },
   },
 });

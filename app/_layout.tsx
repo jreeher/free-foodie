@@ -47,7 +47,7 @@ const queryClient = new QueryClient({
 // and loads instantly on re-open without waiting for network responses.
 const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
-  key: 'simmerdown-query-cache-v1',
+  key: 'freefoodie-query-cache-v1',
   throttleTime: 1000, // write at most once per second to avoid thrashing
 });
 
