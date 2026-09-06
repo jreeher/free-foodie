@@ -550,6 +550,7 @@ git commit -m "Add Free Foodie database schema and food bank item seed data"
 
 **Files:**
 - Modify (full rewrite): `lib/database.types.ts`
+- Modify: `lib/stores/authStore.ts` (`updateProfile` only — see Step 2; discovered as a hard dependency of this rewrite, not planned in advance)
 
 - [ ] **Step 1: Replace the entire file contents**
 
@@ -743,16 +744,56 @@ export type RecipeFoodBankItem = Database['public']['Tables']['recipe_food_bank_
 export type RecipeRating = Database['public']['Tables']['recipe_ratings']['Row'];
 ```
 
-- [ ] **Step 2: Verify**
+- [ ] **Step 2: Fix `lib/stores/authStore.ts`'s `updateProfile` — a hard dependency of this rewrite**
+
+Discovered while executing this task (not caught during design review): `updateProfile`'s type signature and RPC branch reference `preferences`/`household_id`, neither of which exist on the new minimal `Profile` type above. This is a compile error, not a style choice — narrow it to `display_name` only and drop the RPC branch entirely (no `update_user_preferences` RPC exists in the new schema). See design doc §3 and the decisions log for the full rationale, including the RLS-race-condition tradeoff of not replacing it with a new RPC.
+
+In `lib/stores/authStore.ts`, change the interface:
+```typescript
+  updateProfile: (updates: Partial<Pick<Profile, 'display_name'>>) => Promise<void>;
+```
+(was `Partial<Pick<Profile, 'display_name' | 'preferences' | 'household_id'>>`)
+
+And replace the entire `updateProfile` implementation:
+```typescript
+  updateProfile: async (updates) => {
+    const { user, profile } = get();
+    if (!user || !profile) return;
+
+    // Optimistic update — apply immediately so UI feels instant
+    const previousProfile = profile;
+    set({ profile: { ...profile, ...updates } as Profile });
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      set({ profile: previousProfile });
+      useUIStore.getState().showToast(`Save failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (data) {
+      set({ profile: data });
+    }
+  },
+```
+(This removes the `if (updates.preferences && ...)` branch and its `supabase.rpc('update_user_preferences', ...)` call entirely — everything else, including `refreshProfile` and its `PGRST116` fallback, is untouched.)
+
+- [ ] **Step 3: Verify**
 ```bash
 npx tsc --noEmit
 ```
-Expected: errors now concentrated in files that reference the old types (hooks/components not yet rewritten) — that's expected at this point in the plan. Confirm there are no errors reported *inside* `lib/database.types.ts` itself.
+Expected: no errors in `lib/database.types.ts` or `lib/stores/authStore.ts`. Errors remain elsewhere (hooks/components not yet rewritten) — expected at this point in the plan.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 ```bash
-git add lib/database.types.ts
-git commit -m "Rewrite database.types.ts for the Free Foodie schema"
+git add lib/database.types.ts lib/stores/authStore.ts
+git commit -m "Rewrite database.types.ts for the Free Foodie schema; fix authStore.updateProfile for the new minimal Profile type"
 ```
 
 ---
@@ -3324,7 +3365,7 @@ serve(async (req) => {
 ```bash
 npx tsc --noEmit
 ```
-Expected: **zero errors, repo-wide.** This is the first point in the plan where the whole project should type-check cleanly — every file that referenced deleted types/modules has now been replaced. If errors remain, read each one and fix it before moving to Task 18 (likely causes: a stray import path, a leftover reference to a deleted hook/component, or a typo in a prop name — cross-check against the exact signatures defined in Tasks 8–14).
+Expected: **no errors other than the pre-existing baseline** confirmed during Task 1 (three known, out-of-scope issues: `supabase/functions/**/*.ts` Deno files can't type-check under this Node/RN tsconfig — structural, was already true before this kickoff; `lib/theme/colors.ts`'s `darkColors: typeof lightColors` literal-widening bug — pre-existing, unrelated to Free Foodie; see the decisions log for both). Every file that referenced deleted Free Foodie-specific types/modules should now be replaced with no *new* errors. If new errors remain outside that baseline set, read each one and fix it before moving to Task 18 (likely causes: a stray import path, a leftover reference to a deleted hook/component, or a typo in a prop name — cross-check against the exact signatures defined in Tasks 8–14).
 
 - [ ] **Step 5: Commit**
 ```bash
@@ -3342,7 +3383,7 @@ git commit -m "Add Submit tab, Profile tab, and identify-food-items edge functio
 ```bash
 npx tsc --noEmit
 ```
-Expected: zero errors (confirmed already at end of Task 17, re-confirming after any fixes).
+Expected: no errors beyond the pre-existing baseline (confirmed already at end of Task 17, re-confirming after any fixes).
 
 - [ ] **Step 2: Confirm no leftover references to deleted modules**
 ```bash
