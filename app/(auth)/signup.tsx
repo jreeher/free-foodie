@@ -156,11 +156,11 @@ export default function SignupScreen() {
     >
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.logo}>
-          <Text style={s.logoText}>Simmer Down</Text>
+          <Text style={s.logoText}>Free Foodie</Text>
         </View>
 
         <Text style={s.title}>Create your account</Text>
-        <Text style={s.subtitle}>Join and start building your recipe collection.</Text>
+        <Text style={s.subtitle}>Join and start sharing recipes with your community.</Text>
 
         <Text style={s.inputLabel}>YOUR NAME</Text>
         <TextInput

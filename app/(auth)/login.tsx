@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useTheme } from '../../lib/hooks/useTheme';
@@ -156,8 +157,8 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.logo}>
-          <Text style={s.logoText}>Simmer Down</Text>
-          <Text style={s.tagline}>Recipes you actually cook</Text>
+          <Text style={s.logoText}>Free Foodie</Text>
+          <Text style={s.tagline}>Recipes for what you have</Text>
         </View>
 
         <Text style={s.title}>Welcome back</Text>
