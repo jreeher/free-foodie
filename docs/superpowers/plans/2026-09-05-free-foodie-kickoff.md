@@ -744,6 +744,14 @@ export type RecipeFoodBankItem = Database['public']['Tables']['recipe_food_bank_
 export type RecipeRating = Database['public']['Tables']['recipe_ratings']['Row'];
 ```
 
+**Addendum found while verifying this exact step (not caught during design):** the installed `@supabase/supabase-js` resolved to `2.103.0` (`package.json` only pins `^2.45.4`, and nothing else constrains it closer to that floor). That version's `postgrest-js` generic constraints require every table in a typed `Database` to declare `Relationships: GenericRelationship[]`, and every schema to declare `Views`/`Functions` (and, by extension, `Enums`/`CompositeTypes` for the full shape `supabase gen types` normally emits). Without them, `.insert()`/`.update()` calls compile-error as "no overload matches" / argument type `never` — a TypeScript-only problem, the runtime calls are correct regardless — but it will hit *every* mutation hook written in Tasks 8–17, not just this file. Add `Relationships: [];` as the last field of every one of the 8 table definitions above, and add these four fields as siblings of `Tables` (i.e., inside `Database['public']`, after the closing `};` of the `Tables` object, before the schema-level closing brace):
+```typescript
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+```
+
 - [ ] **Step 2: Fix `lib/stores/authStore.ts`'s `updateProfile` — a hard dependency of this rewrite**
 
 Discovered while executing this task (not caught during design review): `updateProfile`'s type signature and RPC branch reference `preferences`/`household_id`, neither of which exist on the new minimal `Profile` type above. This is a compile error, not a style choice — narrow it to `display_name` only and drop the RPC branch entirely (no `update_user_preferences` RPC exists in the new schema). See design doc §3 and the decisions log for the full rationale, including the RLS-race-condition tradeoff of not replacing it with a new RPC.

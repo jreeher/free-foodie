@@ -15,7 +15,7 @@ interface AuthState {
   setProfile: (profile: Profile | null) => void;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<Pick<Profile, 'display_name' | 'preferences' | 'household_id'>>) => Promise<void>;
+  updateProfile: (updates: Partial<Pick<Profile, 'display_name'>>) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -73,22 +73,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const previousProfile = profile;
     set({ profile: { ...profile, ...updates } as Profile });
 
-    // If this is a preferences-only update, use the SECURITY DEFINER RPC
-    // which avoids the auth.uid() RLS race condition on React Native.
-    if (updates.preferences && Object.keys(updates).length === 1) {
-      const { error } = await supabase
-        .rpc('update_user_preferences', { prefs: updates.preferences as Record<string, unknown> });
-
-      if (error) {
-        set({ profile: previousProfile });
-        useUIStore.getState().showToast(`Save failed: ${error.message}`, 'error');
-        throw error;
-      }
-      return;
-    }
-
-    // For all other profile fields (display_name, household_id, etc.)
-    // use a direct update — those are not affected by the RLS race.
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)
