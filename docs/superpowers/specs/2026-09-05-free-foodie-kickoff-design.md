@@ -188,7 +188,7 @@ Client flow (Pantry tab "Scan" entry point):
 
 ## 8. `lib/database.types.ts`
 
-Full rewrite. `Database['public']['Tables']` covers `profiles`, `food_bank_items`, `user_pantry`, `recipes`, `recipe_food_bank_items`, `recipe_ratings`, `recipe_import_log`, `recipe_import_cache`. All Simmer Down types (`MealPlan`, `MealPlanEntry`, `GroceryList*`, `RecipeBook*`, `Household*`, `Marketplace*`, `Category`, `Tag`, `Ingredient`'s `aisle_category` field) removed. New `Ingredient` type drops `aisle_category`/`group` (grocery-list concepts) but keeps `name`/`amount`/`unit`.
+Full rewrite. `Database['public']['Tables']` covers `profiles`, `food_bank_items`, `user_pantry`, `recipes`, `recipe_food_bank_items`, `recipe_ratings`, `recipe_import_log`, `recipe_import_cache`. All Simmer Down types (`MealPlan`, `MealPlanEntry`, `GroceryList*`, `RecipeBook*`, `Household*`, `Marketplace*`, `Category`, `Tag`, `Ingredient`'s `aisle_category` field) removed. New `Ingredient` type drops `aisle_category` (a grocery-list concept with no Free Foodie equivalent) but keeps `name`/`amount`/`unit`/`group` — `group` is a recipe-authoring concept (sub-heading like "For the sauce:"), unrelated to grocery aisles, and is still read by the kept `IngredientRow`/`IngredientGroupHeader` components.
 
 ## 9. Explicitly Not Doing
 
