@@ -7,9 +7,9 @@ export const palette = {
   warmDivider: '#EDEBE7',
 
   // Accents
-  terracotta: '#C4654A',
-  terracottaLight: '#D4826C',
-  terracottaMuted: '#E8B5A5',
+  oceanBlue: '#3D6B9C',
+  oceanBlueLight: '#5B8CBE',
+  oceanBlueMuted: '#A9C6E0',
   sage: '#7A8B6F',
   sageMuted: '#8FA07D',
 
@@ -37,16 +37,16 @@ export const lightColors = {
   surface: palette.white,
   surfaceElevated: palette.white,
   border: palette.warmDivider,
-  borderFocus: palette.terracotta,
+  borderFocus: palette.oceanBlue,
 
   textPrimary: palette.warmCharcoal,
   textSecondary: palette.warmGray,
   textInverse: palette.white,
   textOnAccent: palette.white,
 
-  primary: palette.terracotta,
-  primaryHover: '#B55A3F',
-  primaryDisabled: palette.terracottaMuted,
+  primary: palette.oceanBlue,
+  primaryHover: '#2F5680',
+  primaryDisabled: palette.oceanBlueMuted,
 
   secondary: palette.sage,
   secondaryMuted: palette.sageMuted,
@@ -57,7 +57,7 @@ export const lightColors = {
 
   tabBar: palette.white,
   tabBarBorder: palette.warmDivider,
-  tabIconActive: palette.terracotta,
+  tabIconActive: palette.oceanBlue,
   tabIconInactive: palette.warmGray,
 
   inputBackground: palette.white,
@@ -76,16 +76,16 @@ export const darkColors: typeof lightColors = {
   surface: palette.darkSurface,
   surfaceElevated: '#2E2B28',
   border: palette.darkBorder,
-  borderFocus: palette.terracottaLight,
+  borderFocus: palette.oceanBlueLight,
 
   textPrimary: palette.darkText,
   textSecondary: palette.darkTextSecondary,
   textInverse: palette.warmCharcoal,
   textOnAccent: palette.white,
 
-  primary: palette.terracottaLight,
-  primaryHover: '#E09080',
-  primaryDisabled: '#7A4A3A',
+  primary: palette.oceanBlueLight,
+  primaryHover: '#7BA4CE',
+  primaryDisabled: '#3A5A78',
 
   secondary: palette.sageMuted,
   secondaryMuted: '#7A8B6F',
@@ -96,7 +96,7 @@ export const darkColors: typeof lightColors = {
 
   tabBar: palette.darkSurface,
   tabBarBorder: palette.darkBorder,
-  tabIconActive: palette.terracottaLight,
+  tabIconActive: palette.oceanBlueLight,
   tabIconInactive: palette.darkTextSecondary,
 
   inputBackground: '#2E2B28',
