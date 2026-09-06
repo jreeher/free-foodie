@@ -1,5 +1,3 @@
-import * as ImageManipulator from 'expo-image-manipulator';
-import { imageUriToBase64 } from '../utils/webCompat';
 import { supabase } from '../supabase';
 import { Ingredient } from '../database.types';
 
@@ -59,32 +57,3 @@ export async function importFromUrl(url: string): Promise<ImportedRecipe> {
   return { ...data, ingredients: normalizeIngredients(data.ingredients ?? []) };
 }
 
-export async function importFromImage(
-  base64: string,
-  mediaType: string = 'image/jpeg'
-): Promise<ImportedRecipe> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const data = await fetchEdgeFunction(
-    'extract-recipe-image',
-    { image_base64: base64, media_type: mediaType },
-    session.access_token
-  );
-  return { ...data, ingredients: normalizeIngredients(data.ingredients ?? []) };
-}
-
-/** Compress and convert a local image URI to base64 for the API.
- *  Resizes to max 1500px and applies JPEG compression to stay well under
- *  the edge function request body limit. */
-export async function uriToBase64(uri: string): Promise<{ base64: string; mediaType: string; compressedUri: string }> {
-  const compressed = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 1500 } }],
-    { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
-  );
-
-  const base64 = await imageUriToBase64(compressed.uri);
-
-  return { base64, mediaType: 'image/jpeg', compressedUri: compressed.uri };
-}
