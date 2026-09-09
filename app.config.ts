@@ -77,10 +77,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     eas: {
-      // TODO(user): replace with a real EAS project id — run `eas init` under your
-      // Expo account. The Simmer Down id below is intentionally left as a placeholder
-      // marker, NOT reused, since builds under it would go to the wrong EAS project.
-      projectId: 'REPLACE_WITH_NEW_EAS_PROJECT_ID',
+      projectId: '1a7296ee-f5d7-423b-ac65-f6f2c78e3e4a',
     },
   },
 });
