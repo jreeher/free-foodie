@@ -52,7 +52,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           ) : null}
           {recipe.avgRating != null ? (
             <View style={styles.metaItem}>
-              <Star size={12} color={colors.primary} fill={colors.primary} strokeWidth={1.5} />
+              <Star size={12} color={colors.rating} fill={colors.rating} strokeWidth={1.5} />
               <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: typography.fontFamilies.sansRegular }]}>
                 {recipe.avgRating.toFixed(1)} ({recipe.ratingCount})
               </Text>

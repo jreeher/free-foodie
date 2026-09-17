@@ -34,8 +34,8 @@ export function StarRating({ value, onChange, size = 16, readonly = false }: Sta
         >
           <Star
             size={size}
-            color={star <= filled ? colors.primary : colors.border}
-            fill={star <= filled ? colors.primary : 'transparent'}
+            color={star <= filled ? colors.rating : colors.border}
+            fill={star <= filled ? colors.rating : 'transparent'}
             strokeWidth={1.5}
           />
         </TouchableOpacity>

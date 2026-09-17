@@ -7,11 +7,13 @@ export const palette = {
   warmDivider: '#EDEBE7',
 
   // Accents
-  oceanBlue: '#3D6B9C',
-  oceanBlueLight: '#5B8CBE',
-  oceanBlueMuted: '#A9C6E0',
+  forestGreen: '#3F7A5C',
+  forestGreenLight: '#5FA37B',
+  forestGreenMuted: '#B7D3C1',
   sage: '#7A8B6F',
   sageMuted: '#8FA07D',
+  gold: '#E8A33D',
+  goldLight: '#F0B255',
 
   // Dark mode surfaces
   darkBg: '#1A1917',
@@ -37,19 +39,21 @@ export const lightColors = {
   surface: palette.white,
   surfaceElevated: palette.white,
   border: palette.warmDivider,
-  borderFocus: palette.oceanBlue,
+  borderFocus: palette.forestGreen,
 
   textPrimary: palette.warmCharcoal,
   textSecondary: palette.warmGray,
   textInverse: palette.white,
   textOnAccent: palette.white,
 
-  primary: palette.oceanBlue,
-  primaryHover: '#2F5680',
-  primaryDisabled: palette.oceanBlueMuted,
+  primary: palette.forestGreen,
+  primaryHover: '#2F5F46',
+  primaryDisabled: palette.forestGreenMuted,
 
   secondary: palette.sage,
   secondaryMuted: palette.sageMuted,
+
+  rating: palette.gold,
 
   destructive: palette.destructive,
   success: palette.success,
@@ -57,7 +61,7 @@ export const lightColors = {
 
   tabBar: palette.white,
   tabBarBorder: palette.warmDivider,
-  tabIconActive: palette.oceanBlue,
+  tabIconActive: palette.forestGreen,
   tabIconInactive: palette.warmGray,
 
   inputBackground: palette.white,
@@ -76,19 +80,21 @@ export const darkColors: typeof lightColors = {
   surface: palette.darkSurface,
   surfaceElevated: '#2E2B28',
   border: palette.darkBorder,
-  borderFocus: palette.oceanBlueLight,
+  borderFocus: palette.forestGreenLight,
 
   textPrimary: palette.darkText,
   textSecondary: palette.darkTextSecondary,
   textInverse: palette.warmCharcoal,
   textOnAccent: palette.white,
 
-  primary: palette.oceanBlueLight,
-  primaryHover: '#7BA4CE',
-  primaryDisabled: '#3A5A78',
+  primary: palette.forestGreenLight,
+  primaryHover: '#7BC49B',
+  primaryDisabled: '#2E4A38',
 
   secondary: palette.sageMuted,
   secondaryMuted: '#7A8B6F',
+
+  rating: palette.goldLight,
 
   destructive: palette.destructiveLight,
   success: '#2ECC71',
@@ -96,7 +102,7 @@ export const darkColors: typeof lightColors = {
 
   tabBar: palette.darkSurface,
   tabBarBorder: palette.darkBorder,
-  tabIconActive: palette.oceanBlueLight,
+  tabIconActive: palette.forestGreenLight,
   tabIconInactive: palette.darkTextSecondary,
 
   inputBackground: '#2E2B28',
