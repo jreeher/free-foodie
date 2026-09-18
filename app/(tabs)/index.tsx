@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, ShoppingBasket } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/useTheme';
@@ -34,50 +34,53 @@ export default function PantryScreen() {
   ]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { paddingHorizontal: layout.screenPaddingH }]}>
-        <Text style={[styles.title, { color: colors.textPrimary, fontFamily: typography.fontFamilies.serifDisplay }]}>
-          My Pantry
-        </Text>
-        <TouchableOpacity
-          onPress={() => setShowAddModal(true)}
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
-        >
-          <Plus color="#fff" size={20} strokeWidth={2.5} />
-        </TouchableOpacity>
-      </View>
+    <ImageBackground source={require('../../assets/pantry-bg.jpg')} style={styles.container} resizeMode="cover">
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background, opacity: 0.88 }]} />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={[styles.header, { paddingHorizontal: layout.screenPaddingH }]}>
+          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: typography.fontFamilies.serifDisplay }]}>
+            My Pantry
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowAddModal(true)}
+            style={[styles.addButton, { backgroundColor: colors.primary }]}
+          >
+            <Plus color="#fff" size={20} strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
 
-      {isLoading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={rows}
-          keyExtractor={(row) => (row.type === 'header' ? `h-${row.category}` : row.item.id)}
-          contentContainerStyle={{ paddingHorizontal: layout.screenPaddingH, paddingBottom: 100 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
-          renderItem={({ item: row }) =>
-            row.type === 'header' ? (
-              <Text style={[styles.groupLabel, { color: colors.textSecondary, fontFamily: typography.fontFamilies.sansSemiBold }]}>
-                {row.category.toUpperCase()}
-              </Text>
-            ) : (
-              <PantryItemRow item={row.item} onRemove={(id) => removeItem.mutate(id)} />
-            )
-          }
-          ListEmptyComponent={
-            <EmptyState
-              icon={<ShoppingBasket size={48} color={colors.textSecondary} strokeWidth={1.5} />}
-              title="Your pantry is empty"
-              subtitle="Add items you've received from the food bank to see recipes you can make."
-              actionLabel="Add Items"
-              onAction={() => setShowAddModal(true)}
-            />
-          }
-        />
-      )}
+        {isLoading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        ) : (
+          <FlatList
+            data={rows}
+            keyExtractor={(row) => (row.type === 'header' ? `h-${row.category}` : row.item.id)}
+            contentContainerStyle={{ paddingHorizontal: layout.screenPaddingH, paddingBottom: 100 }}
+            refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
+            renderItem={({ item: row }) =>
+              row.type === 'header' ? (
+                <Text style={[styles.groupLabel, { color: colors.textSecondary, fontFamily: typography.fontFamilies.sansSemiBold }]}>
+                  {row.category.toUpperCase()}
+                </Text>
+              ) : (
+                <PantryItemRow item={row.item} onRemove={(id) => removeItem.mutate(id)} />
+              )
+            }
+            ListEmptyComponent={
+              <EmptyState
+                icon={<ShoppingBasket size={48} color={colors.textSecondary} strokeWidth={1.5} />}
+                title="Your pantry is empty"
+                subtitle="Add items you've received from the food bank to see recipes you can make."
+                actionLabel="Add Items"
+                onAction={() => setShowAddModal(true)}
+              />
+            }
+          />
+        )}
 
-      <AddPantryModal visible={showAddModal} onClose={() => setShowAddModal(false)} />
-    </SafeAreaView>
+        <AddPantryModal visible={showAddModal} onClose={() => setShowAddModal(false)} />
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 

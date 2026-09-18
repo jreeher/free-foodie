@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Search, Camera as CameraIcon, X } from 'lucide-react-native';
+import { Search, Camera as CameraIcon, CheckCircle, X } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/useTheme';
 import { useUIStore } from '../../lib/stores/uiStore';
 import { useFoodBankItems, useFoodBankItemSearch, groupByCategory } from '../../lib/hooks/useFoodBankItems';
@@ -59,6 +59,7 @@ export function AddPantryModal({ visible, onClose }: AddPantryModalProps) {
   const { showToast } = useUIStore();
   const [mode, setMode] = useState<Mode>('search');
   const [search, setSearch] = useState('');
+  const [showAdded, setShowAdded] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanMatches, setScanMatches] = useState<FoodBankItem[]>([]);
   const [confirmedIds, setConfirmedIds] = useState<string[]>([]);
@@ -69,6 +70,9 @@ export function AddPantryModal({ visible, onClose }: AddPantryModalProps) {
 
   const handleAdd = (id: string) => {
     addItem.mutate(id);
+    setSearch('');
+    setShowAdded(true);
+    setTimeout(() => setShowAdded(false), 1400);
   };
 
   const resetScan = () => {
@@ -140,6 +144,13 @@ export function AddPantryModal({ visible, onClose }: AddPantryModalProps) {
             </TouchableOpacity>
           ))}
         </View>
+
+        {showAdded && (
+          <View style={[styles.addedBanner, { backgroundColor: colors.success + '1A', borderColor: colors.success }]}>
+            <CheckCircle size={16} color={colors.success} strokeWidth={2} />
+            <Text style={{ color: colors.success, fontFamily: typography.fontFamilies.sansSemiBold }}>Added!</Text>
+          </View>
+        )}
 
         {mode === 'search' && (
           <View style={{ flex: 1, padding: 16 }}>
@@ -248,6 +259,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
   title: { fontSize: 24 },
   tabRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 20, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#0001' },
+  addedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 12, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1 },
   tab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 12, borderBottomWidth: 2 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
   resultRow: { paddingVertical: 12, paddingHorizontal: 12, borderWidth: 1, borderRadius: 10, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between' },

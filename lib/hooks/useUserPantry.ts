@@ -54,6 +54,7 @@ export function useAddPantryItem() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [PANTRY_KEY] });
+      showToast('Added!', 'success');
     },
     onError: (err: Error) => showToast(err.message, 'error'),
   });
