@@ -7,13 +7,13 @@ export const palette = {
   warmDivider: '#EDEBE7',
 
   // Accents
-  forestGreen: '#3F7A5C',
-  forestGreenLight: '#5FA37B',
-  forestGreenMuted: '#B7D3C1',
-  sage: '#7A8B6F',
-  sageMuted: '#8FA07D',
-  gold: '#E8A33D',
-  goldLight: '#F0B255',
+  forestGreen: '#2E6B4E',
+  forestGreenLight: '#4F9974',
+  forestGreenMuted: '#AACDBB',
+  sage: '#84957A',
+  sageMuted: '#9BAD8C',
+  gold: '#E2A13E',
+  goldLight: '#EEBB66',
 
   // Dark mode surfaces
   darkBg: '#1A1917',
@@ -47,7 +47,7 @@ export const lightColors = {
   textOnAccent: palette.white,
 
   primary: palette.forestGreen,
-  primaryHover: '#2F5F46',
+  primaryHover: '#255A40',
   primaryDisabled: palette.forestGreenMuted,
 
   secondary: palette.sage,
@@ -88,11 +88,11 @@ export const darkColors: typeof lightColors = {
   textOnAccent: palette.white,
 
   primary: palette.forestGreenLight,
-  primaryHover: '#7BC49B',
+  primaryHover: '#6BB490',
   primaryDisabled: '#2E4A38',
 
   secondary: palette.sageMuted,
-  secondaryMuted: '#7A8B6F',
+  secondaryMuted: palette.sage,
 
   rating: palette.goldLight,
 
