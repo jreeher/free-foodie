@@ -75,7 +75,7 @@ export default function LoginScreen() {
     logoImage: {
       width: 72,
       height: 72,
-      marginBottom: 12,
+      marginBottom: 8,
     },
     logoText: {
       ...typography.textStyles.displayMedium,
@@ -164,7 +164,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.logo}>
           <Image
-            source={require('../../assets/adaptive-icon.png')}
+            source={require('../../assets/logo-mark.png')}
             style={s.logoImage}
             contentFit="contain"
           />
