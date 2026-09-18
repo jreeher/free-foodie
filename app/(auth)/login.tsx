@@ -8,52 +8,47 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
 import { useTheme } from '../../lib/hooks/useTheme';
+import { useUIStore } from '../../lib/stores/uiStore';
 import { supabase } from '../../lib/supabase';
 
 export default function LoginScreen() {
   const { colors, typography, spacing, layout } = useTheme();
+  const { showToast } = useUIStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleEmailLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+      showToast('Please enter your email and password.', 'error');
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      Alert.alert('Sign in failed', error.message);
+      showToast(`Sign in failed: ${error.message}`, 'error');
     }
     // Navigation handled by root layout on session change
   };
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert(
-        'Enter your email',
-        'Type your email address in the field above, then tap "Forgot password?"'
-      );
+      showToast('Type your email address in the field above, then tap "Forgot password?"', 'error');
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
     setLoading(false);
     if (error) {
-      Alert.alert('Error', error.message);
+      showToast(error.message, 'error');
     } else {
-      Alert.alert(
-        'Check your email',
-        `A password reset link has been sent to ${email.trim()}.`
-      );
+      showToast(`Password reset link sent to ${email.trim()}.`, 'success');
     }
   };
 

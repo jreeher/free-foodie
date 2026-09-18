@@ -9,15 +9,16 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { useTheme } from '../../lib/hooks/useTheme';
+import { useUIStore } from '../../lib/stores/uiStore';
 import { supabase } from '../../lib/supabase';
 
 export default function SignupScreen() {
   const { colors, typography, layout } = useTheme();
+  const { showToast } = useUIStore();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,15 +27,15 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     if (!displayName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Missing fields', 'Please fill in all fields.');
+      showToast('Please fill in all fields.', 'error');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Password mismatch', 'Passwords do not match.');
+      showToast('Passwords do not match.', 'error');
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+      showToast('Password must be at least 8 characters.', 'error');
       return;
     }
 
@@ -49,12 +50,9 @@ export default function SignupScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Sign up failed', error.message);
+      showToast(`Sign up failed: ${error.message}`, 'error');
     } else {
-      Alert.alert(
-        'Account created',
-        'Check your email to confirm your account, then sign in.',
-      );
+      showToast('Account created! Check your email to confirm, then sign in.', 'success');
     }
   };
 
