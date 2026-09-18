@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Search, Grid3x3, Camera as CameraIcon, X } from 'lucide-react-native';
+import { Search, Camera as CameraIcon, X } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/useTheme';
 import { useUIStore } from '../../lib/stores/uiStore';
 import { useFoodBankItems, useFoodBankItemSearch, groupByCategory } from '../../lib/hooks/useFoodBankItems';
@@ -20,7 +20,7 @@ import { FoodBankItem } from '../../lib/database.types';
 import { supabase } from '../../lib/supabase';
 import { imageUriToBase64 } from '../../lib/utils/webCompat';
 
-type Mode = 'search' | 'browse' | 'scan';
+type Mode = 'search' | 'scan';
 
 interface AddPantryModalProps {
   visible: boolean;
@@ -126,14 +126,13 @@ export function AddPantryModal({ visible, onClose }: AddPantryModalProps) {
         </View>
 
         <View style={styles.tabRow}>
-          {(['search', 'browse', 'scan'] as Mode[]).map((m) => (
+          {(['search', 'scan'] as Mode[]).map((m) => (
             <TouchableOpacity
               key={m}
               onPress={() => setMode(m)}
               style={[styles.tab, { borderBottomColor: mode === m ? colors.primary : 'transparent' }]}
             >
               {m === 'search' && <Search size={16} color={mode === m ? colors.primary : colors.textSecondary} strokeWidth={2} />}
-              {m === 'browse' && <Grid3x3 size={16} color={mode === m ? colors.primary : colors.textSecondary} strokeWidth={2} />}
               {m === 'scan' && <CameraIcon size={16} color={mode === m ? colors.primary : colors.textSecondary} strokeWidth={2} />}
               <Text style={{ color: mode === m ? colors.primary : colors.textSecondary, fontFamily: typography.fontFamilies.sansMedium }}>
                 {m.charAt(0).toUpperCase() + m.slice(1)}
@@ -152,38 +151,38 @@ export function AddPantryModal({ visible, onClose }: AddPantryModalProps) {
               onChangeText={setSearch}
               autoFocus
             />
-            <ScrollView style={{ marginTop: 12 }}>
-              {(searchResults ?? []).map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[styles.resultRow, { borderColor: colors.border }]}
-                  onPress={() => handleAdd(item.id)}
-                >
-                  <Text style={{ color: colors.textPrimary }}>{item.name}</Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.category}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {mode === 'browse' && (
-          <ScrollView style={{ flex: 1, padding: 16 }}>
-            {groups.map((group) => (
-              <View key={group.category} style={{ marginBottom: 16 }}>
-                <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>{group.category.toUpperCase()}</Text>
-                {group.items.map((item) => (
+            {search.trim() ? (
+              <ScrollView style={{ marginTop: 12 }}>
+                {(searchResults ?? []).map((item) => (
                   <TouchableOpacity
                     key={item.id}
                     style={[styles.resultRow, { borderColor: colors.border }]}
                     onPress={() => handleAdd(item.id)}
                   >
                     <Text style={{ color: colors.textPrimary }}>{item.name}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.category}</Text>
                   </TouchableOpacity>
                 ))}
-              </View>
-            ))}
-          </ScrollView>
+              </ScrollView>
+            ) : (
+              <ScrollView style={{ marginTop: 12 }}>
+                {groups.map((group) => (
+                  <View key={group.category} style={{ marginBottom: 16 }}>
+                    <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>{group.category.toUpperCase()}</Text>
+                    {group.items.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[styles.resultRow, { borderColor: colors.border }]}
+                        onPress={() => handleAdd(item.id)}
+                      >
+                        <Text style={{ color: colors.textPrimary }}>{item.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
         )}
 
         {mode === 'scan' && (
