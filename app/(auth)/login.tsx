@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
 import { useTheme } from '../../lib/hooks/useTheme';
 import { supabase } from '../../lib/supabase';
@@ -70,6 +71,11 @@ export default function LoginScreen() {
     logo: {
       alignItems: 'center',
       marginBottom: 48,
+    },
+    logoImage: {
+      width: 72,
+      height: 72,
+      marginBottom: 12,
     },
     logoText: {
       ...typography.textStyles.displayMedium,
@@ -157,6 +163,11 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.logo}>
+          <Image
+            source={require('../../assets/adaptive-icon.png')}
+            style={s.logoImage}
+            contentFit="contain"
+          />
           <Text style={s.logoText}>Free Foodie</Text>
           <Text style={s.tagline}>Recipes for what you have</Text>
         </View>
