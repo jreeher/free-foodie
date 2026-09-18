@@ -3,6 +3,18 @@
  * Import from here instead of using platform-specific APIs directly.
  */
 import { Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
+
+// ─── Haptics ──────────────────────────────────────────────────────────────────
+
+/**
+ * Light impact haptic feedback. No-ops on web — expo-haptics has no web
+ * implementation and throws synchronously there ("not available on web").
+ */
+export function impactLight(): void {
+  if (Platform.OS === 'web') return;
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+}
 
 // ─── Clipboard ────────────────────────────────────────────────────────────────
 

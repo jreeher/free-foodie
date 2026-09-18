@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Edit3, Trash2, Clock, ChefHat } from 'lucide-react-native';
 import { useTheme } from '../../../lib/hooks/useTheme';
+import { useUIStore } from '../../../lib/stores/uiStore';
 import { useRecipe, useDeleteRecipe } from '../../../lib/hooks/useRecipes';
 import { useRecipeRating, useSubmitRating } from '../../../lib/hooks/useRecipeRatings';
 import { useUser } from '../../../lib/hooks/useAuth';
@@ -21,6 +22,7 @@ const HERO_HEIGHT = 240;
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, typography, layout } = useTheme();
+  const { showConfirm } = useUIStore();
   const user = useUser();
 
   const { data: recipe, isLoading } = useRecipe(id);
@@ -51,10 +53,13 @@ export default function RecipeDetailScreen() {
   }
 
   const handleDelete = () => {
-    Alert.alert('Delete Recipe', `Are you sure you want to delete "${recipe.title}"? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteRecipe.mutate(recipe.id, { onSuccess: () => router.back() }) },
-    ]);
+    showConfirm({
+      title: 'Delete Recipe',
+      message: `Are you sure you want to delete "${recipe.title}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => deleteRecipe.mutate(recipe.id, { onSuccess: () => router.back() }),
+    });
   };
 
   return (

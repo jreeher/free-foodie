@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { Minus, Plus, Users } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/useTheme';
+import { impactLight } from '../../lib/utils/webCompat';
 
 interface ServingsAdjusterProps {
   baseServings: number;
@@ -15,12 +15,12 @@ export function ServingsAdjuster({ baseServings, currentServings, onChange }: Se
 
   const decrement = () => {
     if (currentServings <= 1) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    impactLight();
     onChange(currentServings - 1);
   };
 
   const increment = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    impactLight();
     onChange(currentServings + 1);
   };
 

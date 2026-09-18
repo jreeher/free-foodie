@@ -8,12 +8,12 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Search, Grid3x3, Camera as CameraIcon, X } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/useTheme';
+import { useUIStore } from '../../lib/stores/uiStore';
 import { useFoodBankItems, useFoodBankItemSearch, groupByCategory } from '../../lib/hooks/useFoodBankItems';
 import { useAddPantryItem } from '../../lib/hooks/useUserPantry';
 import { FoodBankItem } from '../../lib/database.types';
@@ -56,6 +56,7 @@ function bestMatch(detectedName: string, catalog: FoodBankItem[]): FoodBankItem 
 
 export function AddPantryModal({ visible, onClose }: AddPantryModalProps) {
   const { colors, typography } = useTheme();
+  const { showToast } = useUIStore();
   const [mode, setMode] = useState<Mode>('search');
   const [search, setSearch] = useState('');
   const [scanning, setScanning] = useState(false);
@@ -94,7 +95,7 @@ export function AddPantryModal({ visible, onClose }: AddPantryModalProps) {
       const unique = Array.from(new Map(matches.map((m) => [m.id, m])).values());
       setScanMatches(unique);
     } catch (e: any) {
-      Alert.alert('Scan failed', e.message);
+      showToast(`Scan failed: ${e.message}`, 'error');
     } finally {
       setScanning(false);
     }

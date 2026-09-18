@@ -6,16 +6,29 @@ export interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
+export interface ConfirmOptions {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+}
+
 interface UIState {
   toasts: Toast[];
   showToast: (message: string, type?: Toast['type']) => void;
   dismissToast: (id: string) => void;
+  confirmDialog: ConfirmOptions | null;
+  showConfirm: (options: ConfirmOptions) => void;
+  hideConfirm: () => void;
 }
 
 let toastId = 0;
 
 export const useUIStore = create<UIState>((set) => ({
   toasts: [],
+  confirmDialog: null,
 
   showToast: (message, type = 'success') => {
     const id = String(++toastId);
@@ -34,4 +47,7 @@ export const useUIStore = create<UIState>((set) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
     }));
   },
+
+  showConfirm: (options) => set({ confirmDialog: options }),
+  hideConfirm: () => set({ confirmDialog: null }),
 }));

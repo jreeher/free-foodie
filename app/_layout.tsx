@@ -29,6 +29,7 @@ import { useAuthListener, useSession } from '../lib/hooks/useAuth';
 import { useAuthStore } from '../lib/stores/authStore';
 import { useTheme } from '../lib/hooks/useTheme';
 import { ToastContainer } from '../components/ui/Toast';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { WebWrapper } from '../components/ui/WebWrapper';
 
 SplashScreen.preventAutoHideAsync();
@@ -79,6 +80,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
       <ToastContainer />
+      <ConfirmDialog />
     </>
   );
 }

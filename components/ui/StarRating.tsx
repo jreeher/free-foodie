@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Star } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../lib/hooks/useTheme';
+import { impactLight } from '../../lib/utils/webCompat';
 
 interface StarRatingProps {
   value: number | null;
@@ -17,7 +17,7 @@ export function StarRating({ value, onChange, size = 16, readonly = false }: Sta
 
   const handlePress = (star: number) => {
     if (readonly || !onChange) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    impactLight();
     // Tap same star to clear
     onChange(star === filled ? 0 : star);
   };

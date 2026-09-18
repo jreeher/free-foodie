@@ -7,8 +7,8 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../lib/hooks/useTheme';
+import { impactLight } from '../../lib/utils/webCompat';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
 type Size = 'sm' | 'md' | 'lg';
@@ -41,7 +41,7 @@ export function Button({
   const { colors, typography, layout } = useTheme();
 
   const handlePress = () => {
-    if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (haptic) impactLight();
     onPress();
   };
 

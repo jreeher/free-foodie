@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Plus, Minus, Camera, Image as ImageIcon, Download } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/useTheme';
+import { useUIStore } from '../../lib/stores/uiStore';
 import { useCreateRecipe, useUpdateRecipe, useUploadRecipeImage, RecipeWithMeta } from '../../lib/hooks/useRecipes';
 import { importFromUrl } from '../../lib/api/importRecipe';
 import { Ingredient, SkillLevel } from '../../lib/database.types';
@@ -39,6 +39,7 @@ interface RecipeFormProps {
 
 export function RecipeForm({ mode, initialRecipe, onSaved }: RecipeFormProps) {
   const { colors, typography, layout } = useTheme();
+  const { showToast } = useUIStore();
   const createRecipe = useCreateRecipe();
   const updateRecipe = useUpdateRecipe();
   const uploadImage = useUploadRecipeImage();
@@ -88,7 +89,7 @@ export function RecipeForm({ mode, initialRecipe, onSaved }: RecipeFormProps) {
       setInstructions(imported.instructions.length ? imported.instructions : ['']);
       if (imported.image_url) setImageUri(imported.image_url);
     } catch (e: any) {
-      Alert.alert('Import failed', e.message);
+      showToast(`Import failed: ${e.message}`, 'error');
     } finally {
       setImporting(false);
     }
@@ -117,7 +118,7 @@ export function RecipeForm({ mode, initialRecipe, onSaved }: RecipeFormProps) {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert('Missing title', 'Please enter a recipe title.');
+      showToast('Please enter a recipe title.', 'error');
       return;
     }
     setSaving(true);
@@ -154,7 +155,7 @@ export function RecipeForm({ mode, initialRecipe, onSaved }: RecipeFormProps) {
         onSaved(initialRecipe!.id);
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showToast(e.message, 'error');
     } finally {
       setSaving(false);
     }

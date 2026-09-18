@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { LogOut, ChevronRight, BookOpen } from 'lucide-react-native';
 import { useTheme } from '../../../lib/hooks/useTheme';
 import { useProfile } from '../../../lib/hooks/useAuth';
 import { useAuthStore } from '../../../lib/stores/authStore';
+import { useUIStore } from '../../../lib/stores/uiStore';
 import { useRecipes, RecipeWithMeta } from '../../../lib/hooks/useRecipes';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
@@ -13,6 +14,7 @@ export default function ProfileScreen() {
   const { colors, typography, layout } = useTheme();
   const profile = useProfile();
   const { updateProfile, signOut } = useAuthStore();
+  const { showToast, showConfirm } = useUIStore();
   const { data: myRecipes, isLoading } = useRecipes({ mine: true });
 
   const [editingName, setEditingName] = useState(false);
@@ -25,17 +27,20 @@ export default function ProfileScreen() {
       await updateProfile({ display_name: nameInput.trim() || null });
       setEditingName(false);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showToast(e.message, 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
-    ]);
+    showConfirm({
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out?',
+      confirmLabel: 'Sign Out',
+      destructive: true,
+      onConfirm: () => signOut(),
+    });
   };
 
   const renderRecipe = ({ item }: { item: RecipeWithMeta }) => (

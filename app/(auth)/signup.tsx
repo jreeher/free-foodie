@@ -40,7 +40,7 @@ export default function SignupScreen() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -51,6 +51,8 @@ export default function SignupScreen() {
 
     if (error) {
       showToast(`Sign up failed: ${error.message}`, 'error');
+    } else if (data.session) {
+      showToast('Account created! Welcome to Free Foodie.', 'success');
     } else {
       showToast('Account created! Check your email to confirm, then sign in.', 'success');
     }
