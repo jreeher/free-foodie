@@ -40,6 +40,18 @@ export function useSubmitRating() {
   return useMutation({
     mutationFn: async ({ recipeId, rating }: { recipeId: string; rating: number }) => {
       if (!user) throw new Error('Not authenticated');
+      // rating === 0 means "clear my rating" (StarRating's tap-to-toggle affordance).
+      // recipe_ratings.rating has CHECK (rating BETWEEN 1 AND 5), so 0 isn't a
+      // valid row value — clearing means deleting the row, not upserting it.
+      if (rating === 0) {
+        const { error } = await supabase
+          .from('recipe_ratings')
+          .delete()
+          .eq('recipe_id', recipeId)
+          .eq('user_id', user.id);
+        if (error) throw error;
+        return;
+      }
       const { error } = await supabase
         .from('recipe_ratings')
         .upsert(
@@ -48,10 +60,10 @@ export function useSubmitRating() {
         );
       if (error) throw error;
     },
-    onSuccess: (_data, { recipeId }) => {
+    onSuccess: (_data, { recipeId, rating }) => {
       qc.invalidateQueries({ queryKey: ['recipe_ratings', recipeId] });
       qc.invalidateQueries({ queryKey: ['recipes'] });
-      showToast('Rating saved', 'success');
+      showToast(rating === 0 ? 'Rating removed' : 'Rating saved', 'success');
     },
     onError: (err: Error) => showToast(err.message, 'error'),
   });
