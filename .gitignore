@@ -6,6 +6,7 @@ web-build/
 android/
 ios/
 .idea/
+supabase/.temp/
 IconKitchen-Output*/
 icon/
 *.orig.*

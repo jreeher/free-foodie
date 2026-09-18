@@ -169,7 +169,7 @@ export default function LoginScreen() {
             contentFit="contain"
           />
           <Text style={s.logoText}>Free Foodie</Text>
-          <Text style={s.tagline}>Recipes for what you have</Text>
+          <Text style={s.tagline}>Free Food Made Awesome</Text>
         </View>
 
         <Text style={s.title}>Welcome back</Text>
