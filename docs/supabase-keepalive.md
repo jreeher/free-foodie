@@ -1,8 +1,10 @@
 # Keeping a free-tier Supabase project from pausing
 
-Free-tier Supabase projects are paused after about 7 days without activity.
-A paused project stops serving the app until someone restores it. The fix is a
-scheduled job that makes a few real read queries every few days. GitHub
+Free-tier Supabase projects are paused after about a week of too little
+database activity. A paused project stops serving the app until someone
+restores it. The fix is a scheduled job that makes a few real read queries
+every day. Supabase says "a few requests a day is usually enough"; a job that
+ran only every 3 days still drew a pause warning about every 9 days. GitHub
 Actions is a good host: it's free, needs no server, and runs on GitHub's
 machines (so it isn't affected by office network restrictions).
 
@@ -47,8 +49,13 @@ name: Supabase keep-alive
 
 on:
   schedule:
-    - cron: '17 14 */3 * *'   # every 3 days, 14:17 UTC
+    - cron: '17 14 * * *'     # daily, 14:17 UTC
+    - cron: '47 2 * * *'      # and 02:47 UTC
   workflow_dispatch:           # adds a manual "Run workflow" button
+
+permissions:
+  contents: read
+  actions: write               # only for the re-enable step
 
 jobs:
   keepalive:
@@ -77,6 +84,16 @@ jobs:
           q "items?select=id,name,category&order=created_at.desc&limit=5"
           q "items?select=id,name&name=ilike.*${term}*&limit=10"
           q "ratings?select=item_id,rating&limit=20"
+
+      # GitHub disables scheduled workflows after 60 days with no repo
+      # activity. Re-enabling through the API on each run resets that clock.
+      - name: Keep this scheduled workflow from being auto-disabled
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X PUT \
+            "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable"
 ```
 
 Query tips (PostgREST syntax):
@@ -105,12 +122,13 @@ means the table name is wrong (or not exposed to the API).
 
 ## How it behaves
 
-- Runs every 3 days (leaves margin if one run is delayed or fails).
+- Runs twice a day, so a delayed or failed run doesn't matter.
 - The job fails, and GitHub emails the repo owner, if the database is
   unreachable or a query errors. That also alerts you if the project has
   already paused.
 - GitHub disables scheduled workflows in repos with no commits for 60 days.
-  Make an occasional commit or re-enable it from the Actions tab.
+  The re-enable step resets that on every run. If it was already disabled,
+  turn it back on once from the Actions tab.
 - Watch the project for the first week or two to confirm it stays awake.
 
 ## Troubleshooting

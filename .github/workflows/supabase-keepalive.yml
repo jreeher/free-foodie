@@ -1,13 +1,23 @@
 name: Supabase keep-alive
 
-# Free-tier Supabase projects pause after ~7 days without activity. This runs a
-# few read queries shaped like the app's own (recipe list with tagged
-# ingredients, catalog search, ratings) every few days, and doubles as a
-# smoke test: the job fails if the database is unreachable or a query errors.
+# Free-tier Supabase projects pause after about a week of too little database
+# activity. Supabase says "a few requests a day is usually enough", so this runs
+# app-shaped read queries twice a day (it used to run every 3 days, which drew a
+# pause warning about every 9 days). It doubles as a smoke test: the job fails
+# if the database is unreachable or a query errors.
+#
+# GitHub disables scheduled workflows after 60 days with no repo activity. The
+# last step re-enables this workflow through the API on every run, which resets
+# that clock without making commits.
 on:
   schedule:
-    - cron: '17 14 */3 * *'
+    - cron: '17 14 * * *'
+    - cron: '47 2 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write   # only for the re-enable step below
 
 jobs:
   keepalive:
@@ -21,17 +31,33 @@ jobs:
           set -euo pipefail
           api="$SUPABASE_URL/rest/v1"
 
-          # Vary the catalog search term by day of year
-          terms=(rice beans tomato pasta oil pumpkin cheese flour)
-          term="${terms[$(( 10#$(date +%j) % ${#terms[@]} ))]}"
+          # Vary the catalog search terms by day of year and run
+          terms=(rice beans tomato pasta oil pumpkin cheese flour lentil oats)
+          n=${#terms[@]}
+          day=$(( 10#$(date +%j) ))
+          term1="${terms[$(( day % n ))]}"
+          term2="${terms[$(( (day + 3) % n ))]}"
 
           q() {
             echo "GET $1"
             curl -fsS --retry 3 --retry-delay 5 "$api/$1" \
-              -H "apikey: $SUPABASE_ANON_KEY" -o /dev/null -w "  -> %{http_code}\n"
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -o /tmp/body.json -w "  -> %{http_code}"
+            echo " ($(wc -c < /tmp/body.json) bytes)"
             sleep $(( RANDOM % 4 + 1 ))
           }
 
           q "recipes?select=id,title,skill_level,recipe_food_bank_items(food_bank_items(name))&order=created_at.desc&limit=5"
-          q "food_bank_items?select=id,name,category&name=ilike.*${term}*&order=name&limit=10"
+          q "food_bank_items?select=id,name,category&name=ilike.*${term1}*&order=name&limit=10"
+          q "food_bank_items?select=id,name,category&name=ilike.*${term2}*&order=name&limit=10"
           q "recipe_ratings?select=recipe_id,rating&limit=20"
+          q "recipes?select=id,title&order=title&limit=10"
+
+      - name: Keep this scheduled workflow from being auto-disabled
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X PUT \
+            "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable"
+          echo "Workflow re-enabled; GitHub's 60-day inactivity clock is reset."
